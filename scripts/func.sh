@@ -76,17 +76,17 @@ function getBuildroot() {
   local CACHE_FILE="/tmp/buildroot.zip"
   rm -f "${CACHE_FILE}"
   if [ "${2}" = "true" ]; then
-    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/RROrg/rr-buildroot/releases" | jq -r ".[].tag_name" | sort -rV | head -1)
+    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/jokenwang/rr-buildroot/releases" | jq -r ".[].tag_name" | sort -rV | head -1)
   else
-    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/RROrg/rr-buildroot/releases/latest" | jq -r ".tag_name")
+    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/jokenwang/rr-buildroot/releases/latest" | jq -r ".tag_name")
   fi
   while read ID NAME; do
     if [ "${NAME}" = "buildroot-${TAG}.zip" ]; then
-      STATUS=$(curl -kL -w "%{http_code}" -H "Authorization: token ${TOKEN}" -H "Accept: application/octet-stream" "https://api.github.com/repos/RROrg/rr-buildroot/releases/assets/${ID}" -o "${CACHE_FILE}")
+      STATUS=$(curl -kL -w "%{http_code}" -H "Authorization: token ${TOKEN}" -H "Accept: application/octet-stream" "https://api.github.com/repos/jokenwang/rr-buildroot/releases/assets/${ID}" -o "${CACHE_FILE}")
       echo "TAG=${TAG}; Status=${STATUS}"
       [ ${STATUS:-0} -ne 200 ] && exit 1
     fi
-  done <<<$(curl -skL -H "Authorization: Bearer ${TOKEN}" "https://api.github.com/repos/RROrg/rr-buildroot/releases/tags/${TAG}" | jq -r '.assets[] | "\(.id) \(.name)"')
+  done <<<$(curl -skL -H "Authorization: Bearer ${TOKEN}" "https://api.github.com/repos/jokenwang/rr-buildroot/releases/tags/${TAG}" | jq -r '.assets[] | "\(.id) \(.name)"')
   # Unzip Buildroot
   rm -rf "${CACHE_DIR}"
   mkdir -p "${CACHE_DIR}"
@@ -108,17 +108,17 @@ function getCKs() {
   local CACHE_FILE="/tmp/rr-cks.zip"
   rm -f "${CACHE_FILE}"
   if [ "${2}" = "true" ]; then
-    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/RROrg/rr-cks/releases" | jq -r ".[].tag_name" | sort -rV | head -1)
+    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/jokenwang/rr-cks/releases" | jq -r ".[].tag_name" | sort -rV | head -1)
   else
-    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/RROrg/rr-cks/releases/latest" | jq -r ".tag_name")
+    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/jokenwang/rr-cks/releases/latest" | jq -r ".tag_name")
   fi
   while read ID NAME; do
     if [ "${NAME}" = "rr-cks-${TAG}.zip" ]; then
-      STATUS=$(curl -kL -w "%{http_code}" -H "Authorization: token ${TOKEN}" -H "Accept: application/octet-stream" "https://api.github.com/repos/RROrg/rr-cks/releases/assets/${ID}" -o "${CACHE_FILE}")
+      STATUS=$(curl -kL -w "%{http_code}" -H "Authorization: token ${TOKEN}" -H "Accept: application/octet-stream" "https://api.github.com/repos/jokenwang/rr-cks/releases/assets/${ID}" -o "${CACHE_FILE}")
       echo "TAG=${TAG}; Status=${STATUS}"
       [ ${STATUS:-0} -ne 200 ] && exit 1
     fi
-  done <<<$(curl -skL -H "Authorization: Bearer ${TOKEN}" "https://api.github.com/repos/RROrg/rr-cks/releases/tags/${TAG}" | jq -r '.assets[] | "\(.id) \(.name)"')
+  done <<<$(curl -skL -H "Authorization: Bearer ${TOKEN}" "https://api.github.com/repos/jokenwang/rr-cks/releases/tags/${TAG}" | jq -r '.assets[] | "\(.id) \(.name)"')
   [ ! -f "${CACHE_FILE}" ] && exit 1
   # Unzip CKs
   rm -rf "${DEST_PATH}"
@@ -137,17 +137,17 @@ function getLKMs() {
   local CACHE_FILE="/tmp/rp-lkms.zip"
   rm -f "${CACHE_FILE}"
   if [ "${2}" = "true" ]; then
-    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/RROrg/rr-lkms/releases" | jq -r ".[].tag_name" | sort -rV | head -1)
+    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/jokenwang/rr-lkms/releases" | jq -r ".[].tag_name" | sort -rV | head -1)
   else
-    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/RROrg/rr-lkms/releases/latest" | jq -r ".tag_name")
+    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/jokenwang/rr-lkms/releases/latest" | jq -r ".tag_name")
   fi
   while read ID NAME; do
     if [ "${NAME}" = "rp-lkms-${TAG}.zip" ]; then
-      STATUS=$(curl -kL -w "%{http_code}" -H "Authorization: token ${TOKEN}" -H "Accept: application/octet-stream" "https://api.github.com/repos/RROrg/rr-lkms/releases/assets/${ID}" -o "${CACHE_FILE}")
+      STATUS=$(curl -kL -w "%{http_code}" -H "Authorization: token ${TOKEN}" -H "Accept: application/octet-stream" "https://api.github.com/repos/jokenwang/rr-lkms/releases/assets/${ID}" -o "${CACHE_FILE}")
       echo "TAG=${TAG}; Status=${STATUS}"
       [ ${STATUS:-0} -ne 200 ] && exit 1
     fi
-  done <<<$(curl -skL -H "Authorization: Bearer ${TOKEN}" "https://api.github.com/repos/RROrg/rr-lkms/releases/tags/${TAG}" | jq -r '.assets[] | "\(.id) \(.name)"')
+  done <<<$(curl -skL -H "Authorization: Bearer ${TOKEN}" "https://api.github.com/repos/jokenwang/rr-lkms/releases/tags/${TAG}" | jq -r '.assets[] | "\(.id) \(.name)"')
   [ ! -f "${CACHE_FILE}" ] && exit 1
   # Unzip LKMs
   rm -rf "${DEST_PATH}"
@@ -166,17 +166,17 @@ function getAddons() {
   local CACHE_DIR="/tmp/addons"
   local CACHE_FILE="/tmp/addons.zip"
   if [ "${2}" = "true" ]; then
-    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/RROrg/rr-addons/releases" | jq -r ".[].tag_name" | sort -rV | head -1)
+    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/jokenwang/rr-addons/releases" | jq -r ".[].tag_name" | sort -rV | head -1)
   else
-    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/RROrg/rr-addons/releases/latest" | jq -r ".tag_name")
+    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/jokenwang/rr-addons/releases/latest" | jq -r ".tag_name")
   fi
   while read ID NAME; do
     if [ "${NAME}" = "addons-${TAG}.zip" ]; then
-      STATUS=$(curl -kL -w "%{http_code}" -H "Authorization: token ${TOKEN}" -H "Accept: application/octet-stream" "https://api.github.com/repos/RROrg/rr-addons/releases/assets/${ID}" -o "${CACHE_FILE}")
+      STATUS=$(curl -kL -w "%{http_code}" -H "Authorization: token ${TOKEN}" -H "Accept: application/octet-stream" "https://api.github.com/repos/jokenwang/rr-addons/releases/assets/${ID}" -o "${CACHE_FILE}")
       echo "TAG=${TAG}; Status=${STATUS}"
       [ ${STATUS:-0} -ne 200 ] && exit 1
     fi
-  done <<<$(curl -skL -H "Authorization: Bearer ${TOKEN}" "https://api.github.com/repos/RROrg/rr-addons/releases/tags/${TAG}" | jq -r '.assets[] | "\(.id) \(.name)"')
+  done <<<$(curl -skL -H "Authorization: Bearer ${TOKEN}" "https://api.github.com/repos/jokenwang/rr-addons/releases/tags/${TAG}" | jq -r '.assets[] | "\(.id) \(.name)"')
   [ ! -f "${CACHE_FILE}" ] && exit 1
   rm -rf "${DEST_PATH}"
   mkdir -p "${DEST_PATH}"
@@ -206,17 +206,17 @@ function getModules() {
   local CACHE_FILE="/tmp/modules.zip"
   rm -f "${CACHE_FILE}"
   if [ "${2}" = "true" ]; then
-    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/RROrg/rr-modules/releases" | jq -r ".[].tag_name" | sort -rV | head -1)
+    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/jokenwang/rr-modules/releases" | jq -r ".[].tag_name" | sort -rV | head -1)
   else
-    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/RROrg/rr-modules/releases/latest" | jq -r ".tag_name")
+    TAG=$(curl -skL -H "Authorization: token ${TOKEN}" "https://api.github.com/repos/jokenwang/rr-modules/releases/latest" | jq -r ".tag_name")
   fi
   while read ID NAME; do
     if [ "${NAME}" = "modules-${TAG}.zip" ]; then
-      STATUS=$(curl -kL -w "%{http_code}" -H "Authorization: token ${TOKEN}" -H "Accept: application/octet-stream" "https://api.github.com/repos/RROrg/rr-modules/releases/assets/${ID}" -o "${CACHE_FILE}")
+      STATUS=$(curl -kL -w "%{http_code}" -H "Authorization: token ${TOKEN}" -H "Accept: application/octet-stream" "https://api.github.com/repos/jokenwang/rr-modules/releases/assets/${ID}" -o "${CACHE_FILE}")
       echo "TAG=${TAG}; Status=${STATUS}"
       [ ${STATUS:-0} -ne 200 ] && exit 1
     fi
-  done <<<$(curl -skL -H "Authorization: Bearer ${TOKEN}" "https://api.github.com/repos/RROrg/rr-modules/releases/tags/${TAG}" | jq -r '.assets[] | "\(.id) \(.name)"')
+  done <<<$(curl -skL -H "Authorization: Bearer ${TOKEN}" "https://api.github.com/repos/jokenwang/rr-modules/releases/tags/${TAG}" | jq -r '.assets[] | "\(.id) \(.name)"')
   [ ! -f "${CACHE_FILE}" ] && exit 1
   # Unzip Modules
   rm -rf "${DEST_PATH}"
@@ -330,7 +330,7 @@ function convertova() {
 config.version = "8"
 virtualHW.version = "21"
 displayName = "${VMNAME}"
-annotation = "https://github.com/RROrg/rr"
+annotation = "https://github.com/jokenwang/rr"
 guestOS = "ubuntu-64"
 firmware = "efi"
 mks.enable3d = "TRUE"

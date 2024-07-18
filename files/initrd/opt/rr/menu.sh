@@ -608,7 +608,7 @@ function addonMenu() {
         MSG+="$(TEXT "This feature is only available when accessed via ssh (Requires a terminal that supports ZModem protocol).\n")"
         DIALOG --title "$(TEXT "Addons")" \
           --msgbox "${MSG}" 0 0
-        return
+        continue
       fi
       DIALOG --title "$(TEXT "Addons")" \
         --msgbox "$(TEXT "Please upload the *.addons file.")" 0 0
@@ -631,7 +631,7 @@ function addonMenu() {
           DIALOG --title "$(TEXT "Addons")" \
             --yesno "$(TEXT "The addon already exists. Do you want to overwrite it?")" 0 0
           RET=$?
-          [ ${RET} -eq 0 ] && return
+          [ ${RET} -ne 0 ] && return
         fi
         ADDON="$(untarAddon "${TMP_UP_PATH}/${USER_FILE}")"
         if [ -n "${ADDON}" ]; then
@@ -667,6 +667,7 @@ function moduleMenu() {
       i "$(TEXT "Deselect i915 with dependencies")" \
       p "$(TEXT "Priority use of official drivers:") \Z4${ODP}\Zn" \
       f "$(TEXT "Edit modules that need to be copied to DSM")" \
+      b "$(TEXT "modprobe blacklist")" \
       e "$(TEXT "Exit")" \
       2>${TMP_PATH}/resp
     [ $? -ne 0 ] && break
@@ -752,7 +753,7 @@ function moduleMenu() {
       MSG+="$(TEXT "Do you want to continue?")"
       DIALOG --title "$(TEXT "Modules")" \
         --yesno "${MSG}" 0 0
-      [ $? -ne 0 ] && return
+      [ $? -ne 0 ] && continue
       DIALOG --title "$(TEXT "Modules")" \
         --msgbox "$(TEXT "Please upload the *.ko file.")" 0 0
       TMP_UP_PATH=${TMP_PATH}/users
@@ -813,13 +814,35 @@ function moduleMenu() {
       while true; do
         DIALOG --title "$(TEXT "Edit with caution")" \
           --editbox "${TMP_PATH}/modulelist.tmp" 0 0 2>"${TMP_PATH}/modulelist.user"
-        [ $? -ne 0 ] && return
+        [ $? -ne 0 ] && break
         [ ! -d "${USER_UP_PATH}" ] && mkdir -p "${USER_UP_PATH}"
         mv -f "${TMP_PATH}/modulelist.user" "${USER_UP_PATH}/modulelist"
         dos2unix "${USER_UP_PATH}/modulelist"
+        touch ${PART1_PATH}/.build
         break
       done
-      touch ${PART1_PATH}/.build
+      ;;
+    b)
+      # modprobe.blacklist
+      MSG=""
+      MSG+="$(TEXT "The blacklist is used to prevent the kernel from loading specific modules.\n")"
+      MSG+="$(TEXT "The blacklist is a list of module names separated by ','.\n")"
+      MSG+="$(TEXT "For example: \Z4evbug,cdc_ether\Zn\n")"
+      while true; do
+        modblacklist="$(readConfigKey "modblacklist" "${USER_CONFIG_FILE}")"
+        DIALOG --title "$(TEXT "Modules")" \
+          --inputbox "${MSG}" 12 70 "${modblacklist}" \
+          2>${TMP_PATH}/resp
+        [ $? -ne 0 ] && break
+        VALUE="$(cat "${TMP_PATH}/resp")"
+        if [[ ${VALUE} = *" "* ]]; then
+          DIALOG --title "$(TEXT "Cmdline")" \
+            --yesno "$(TEXT "Invalid list, No spaces should appear, retry?")" 0 0
+          [ $? -eq 0 ] && continue || break
+        fi
+        writeConfigKey "modblacklist" "${VALUE}" "${USER_CONFIG_FILE}"
+        break
+      done
       ;;
     e)
       break
@@ -2070,11 +2093,11 @@ function initDSMNetwork {
 # Clone bootloader disk
 function cloneBootloaderDisk() {
   rm -f "${TMP_PATH}/opts"
-  while read KNAME ID PKNAME; do
+  while read KNAME ID SIZE PKNAME; do
     [ -z "${KNAME}" -o -z "${ID}" ] && continue
     [ "${KNAME}" = "${LOADER_DISK}" -o "${PKNAME}" = "${LOADER_DISK}" ] && continue
-    echo "\"${KNAME}\" \"${ID}\" \"off\"" >>"${TMP_PATH}/opts"
-  done <<<$(lsblk -dpno KNAME,ID,PKNAME)
+    printf "\"%s\" \"%-6s %s\" \"off\"\n" "${KNAME}" "${SIZE}" "${ID}" >>"${TMP_PATH}/opts"
+  done <<<$(lsblk -dpno KNAME,ID,SIZE,PKNAME)
   if [ ! -f "${TMP_PATH}/opts" ]; then
     DIALOG --title "$(TEXT "Advanced")" \
       --msgbox "$(TEXT "No disk found!")" 0 0
@@ -2278,7 +2301,7 @@ function setProxy() {
 ###############################################################################
 # Advanced menu
 function advancedMenu() {
-  NEXT="l"
+  NEXT="q"
   while true; do
     rm -f "${TMP_PATH}/menu"
     echo "9 \"$(TEXT "DSM rd compression:") \Z4${RD_COMPRESSED}\Zn\"" >>"${TMP_PATH}/menu"
@@ -2296,6 +2319,8 @@ function advancedMenu() {
       echo "i \"$(TEXT "Timeout of get ip in boot:") \Z4${BOOTIPWAIT}\Zn\"" >>"${TMP_PATH}/menu"
       echo "w \"$(TEXT "Timeout of boot wait:") \Z4${BOOTWAIT}\Zn\"" >>"${TMP_PATH}/menu"
       echo "k \"$(TEXT "kernel switching method:") \Z4${KERNELWAY}\Zn\"" >>"${TMP_PATH}/menu"
+      checkCmdline "rr_cmdline" "nomodeset" && POWEROFFDISPLAY="false" || POWEROFFDISPLAY="true"
+      echo "7 \"$(TEXT "Power off display after boot: ") \Z4${POWEROFFDISPLAY}\Zn\"" >>"${TMP_PATH}/menu"
     fi
     echo "n \"$(TEXT "Reboot on kernel panic:") \Z4${KERNELPANIC}\Zn\"" >>"${TMP_PATH}/menu"
     if [ -n "$(ls /dev/mmcblk* 2>/dev/null)" ]; then
@@ -2358,7 +2383,7 @@ function advancedMenu() {
       DIALOG --title "$(TEXT "Advanced")" \
         --form "${MSG}" 10 110 2 "URL" 1 1 "${PATURL}" 1 5 100 0 "MD5" 2 1 "${PATSUM}" 2 5 100 0 \
         2>"${TMP_PATH}/resp"
-      [ $? -ne 0 ] && return
+      [ $? -ne 0 ] && continue
       paturl="$(cat "${TMP_PATH}/resp" | sed -n '1p')"
       patsum="$(cat "${TMP_PATH}/resp" | sed -n '2p')"
       if [ ! ${paturl} = ${PATURL} ] || [ ! ${patsum} = ${PATSUM} ]; then
@@ -2376,9 +2401,9 @@ function advancedMenu() {
       DIALOG --title "$(TEXT "Advanced")" \
         --default-item "${SATADOM}" --menu "$(TEXT "Choose a mode(Only supported for kernel version 4)")" 0 0 0 --file "${TMP_PATH}/opts" \
         2>${TMP_PATH}/resp
-      [ $? -ne 0 ] && return
+      [ $? -ne 0 ] && continue
       resp=$(cat ${TMP_PATH}/resp 2>/dev/null)
-      [ -z "${resp}" ] && return
+      [ -z "${resp}" ] && continue
       SATADOM=${resp}
       writeConfigKey "satadom" "${SATADOM}" "${USER_CONFIG_FILE}"
       NEXT="8"
@@ -2397,9 +2422,9 @@ function advancedMenu() {
       DIALOG --title "$(TEXT "Advanced")" \
         --default-item "${BOOTIPWAIT}" --no-items --menu "$(TEXT "Choose a time(seconds)")" 0 0 0 ${ITEMS} \
         2>${TMP_PATH}/resp
-      [ $? -ne 0 ] && return
+      [ $? -ne 0 ] && continue
       resp=$(cat ${TMP_PATH}/resp 2>/dev/null)
-      [ -z "${resp}" ] && return
+      [ -z "${resp}" ] && continue
       BOOTIPWAIT=${resp}
       writeConfigKey "bootipwait" "${BOOTIPWAIT}" "${USER_CONFIG_FILE}"
       NEXT="i"
@@ -2409,9 +2434,9 @@ function advancedMenu() {
       DIALOG --title "$(TEXT "Advanced")" \
         --default-item "${BOOTWAIT}" --no-items --menu "$(TEXT "Choose a time(seconds)")" 0 0 0 ${ITEMS} \
         2>${TMP_PATH}/resp
-      [ $? -ne 0 ] && return
+      [ $? -ne 0 ] && continue
       resp=$(cat ${TMP_PATH}/resp 2>/dev/null)
-      [ -z "${resp}" ] && return
+      [ -z "${resp}" ] && continue
       BOOTWAIT=${resp}
       writeConfigKey "bootwait" "${BOOTWAIT}" "${USER_CONFIG_FILE}"
       NEXT="w"
@@ -2421,6 +2446,18 @@ function advancedMenu() {
       writeConfigKey "kernelway" "${KERNELWAY}" "${USER_CONFIG_FILE}"
       NEXT="k"
       ;;
+    7)
+      DIALOG --title "$(TEXT "Advanced")" \
+        --yesno "$(TEXT "Modifying this item requires a reboot, continue?")" 0 0
+      RET=$?
+      [ ${RET} -ne 0 ] && continue
+      checkCmdline "rr_cmdline" "nomodeset" && delCmdline "rr_cmdline" "nomodeset" || addCmdline "rr_cmdline" "nomodeset"
+      DIALOG --title "$(TEXT "Advanced")" \
+        --infobox "$(TEXT "Reboot to RR")" 0 0
+      rebootTo config
+      exit 0
+      NEXT="7"
+      ;;
     n)
       rm -f "${TMP_PATH}/opts"
       echo "5 \"Reboot after 5 seconds\"" >>"${TMP_PATH}/opts"
@@ -2429,9 +2466,9 @@ function advancedMenu() {
       DIALOG --title "$(TEXT "Advanced")" \
         --default-item "${KERNELPANIC}" --menu "$(TEXT "Choose a time(seconds)")" 0 0 0 --file "${TMP_PATH}/opts" \
         2>${TMP_PATH}/resp
-      [ $? -ne 0 ] && return
+      [ $? -ne 0 ] && continue
       resp=$(cat ${TMP_PATH}/resp 2>/dev/null)
-      [ -z "${resp}" ] && return
+      [ -z "${resp}" ] && continue
       KERNELPANIC=${resp}
       writeConfigKey "kernelpanic" "${KERNELPANIC}" "${USER_CONFIG_FILE}"
       NEXT="n"
@@ -2556,7 +2593,7 @@ function advancedMenu() {
     o)
       DIALOG --title "$(TEXT "Advanced")" \
         --yesno "$(TEXT "This option only installs opkg package management, allowing you to install more tools for use and debugging. Do you want to continue?")" 0 0
-      [ $? -ne 0 ] && return
+      [ $? -ne 0 ] && continue
       rm -f "${LOG_FILE}"
       while true; do
         wget http://bin.entware.net/x64-k3.2/installer/generic.sh -O "generic.sh" >"${LOG_FILE}"
@@ -2582,7 +2619,7 @@ function advancedMenu() {
     p)
       DIALOG --title "$(TEXT "Advanced")" \
         --yesno "$(TEXT "Warning:\nDo not terminate midway, otherwise it may cause damage to the RR. Do you want to continue?")" 0 0
-      [ $? -ne 0 ] && return
+      [ $? -ne 0 ] && continue
       DIALOG --title "$(TEXT "Advanced")" \
         --infobox "$(TEXT "Saving ...\n(It usually takes 5-10 minutes, please be patient and wait.)")" 0 0
       RDXZ_PATH="${TMP_PATH}/rdxz_tmp"
@@ -2596,8 +2633,9 @@ function advancedMenu() {
       cp -Rf "$(dirname ${WORK_PATH})" "${RDXZ_PATH}/"
       (
         cd "${RDXZ_PATH}"
-        find . 2>/dev/null | cpio -o -H newc -R root:root | xz -9 --check=crc32 >"${RR_RAMDISK_FILE}"
-      ) || true
+        find . 2>/dev/null | cpio -o -H newc -R root:root | pv -n -s $(du -sb ${RDXZ_PATH} | awk '{print $1}') | xz -9 --check=crc32 >"${RR_RAMDISK_FILE}"
+      ) 2>&1 | DIALOG --title "$(TEXT "Advanced")" \
+        --gauge "$(TEXT "Saving ...\n(It usually takes 5-10 minutes, please be patient and wait.)")" 8 100
       rm -rf "${RDXZ_PATH}"
       DIALOG --title "$(TEXT "Advanced")" \
         --msgbox ""$(TEXT "Save is complete.")"" 0 0
@@ -2934,7 +2972,10 @@ function updateRR() {
   else
     DIALOG --title "${T}" \
       --msgbox "${MSG}" 0 0
+    DIALOG --title "${T}" \
+      --infobox "$(TEXT "Reboot to RR")" 0 0
     rebootTo config
+    exit 0
   fi
 }
 
@@ -3510,7 +3551,7 @@ else
       NEXT="e"
       while true; do
         echo -n "" >"${TMP_PATH}/menu"
-        echo "p \"$(TEXT "Poweroff")\"" >>"${TMP_PATH}/menu"
+        echo "p \"$(TEXT "Power off")\"" >>"${TMP_PATH}/menu"
         echo "r \"$(TEXT "Reboot")\"" >>"${TMP_PATH}/menu"
         echo "x \"$(TEXT "Reboot to RR")\"" >>"${TMP_PATH}/menu"
         echo "y \"$(TEXT "Reboot to Recovery")\"" >>"${TMP_PATH}/menu"
@@ -3528,7 +3569,7 @@ else
         case "$(cat ${TMP_PATH}/resp)" in
         p)
           DIALOG --title "$(TEXT "Main menu")" \
-            --infobox "$(TEXT "Poweroff")" 0 0
+            --infobox "$(TEXT "Power off")" 0 0
           poweroff
           exit 0
           ;;
